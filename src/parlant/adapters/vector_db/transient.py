@@ -389,7 +389,7 @@ class TransientVectorCollection(Generic[TDocument], BaseVectorCollection[TDocume
         ]
 
         self._logger.trace(
-            f"Similar documents found\n{json.dumps(docs_and_similarities[0], indent=2)}"
+                f"Similar documents found\n{json.dumps(docs_and_similarities[0], indent=2,ensure_ascii=False)}"
         )
 
         results = [

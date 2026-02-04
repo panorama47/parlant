@@ -169,3 +169,66 @@ class Test_that_server_works_without_configure_api(SDKTest):
             response = await client.get(f"http://localhost:{ctx.server.port}/healthz")
             assert response.status_code == 200
             assert response.json() == {"status": "ok"}
+
+
+class Test_that_server_skips_health_check_when_skip_health_check_is_true(SDKTest):
+    async def create_server(self, port: int) -> tuple[p.Server, Callable[[], p.Container]]:
+        test_container: p.Container = p.Container()
+
+        async def configure_container(container: p.Container) -> p.Container:
+            nonlocal test_container
+            test_container = container.clone()
+            return test_container
+
+        # Create server with skip_health_check=True
+        return p.Server(
+            port=port,
+            tool_service_port=get_random_port(),
+            log_level=p.LogLevel.TRACE,
+            configure_container=configure_container,
+            skip_health_check=True,
+        ), lambda: test_container
+
+    async def setup(self, server: p.Server) -> None:
+        pass
+
+    async def run(self, ctx: Context) -> None:
+        # Verify that the server is marked as ready immediately without health check
+        assert ctx.server.ready.is_set()
+
+        # Verify health endpoint still exists and works
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"http://localhost:{ctx.server.port}/healthz")
+            assert response.status_code == 200
+            assert response.json() == {"status": "ok"}
+
+
+class Test_that_server_performs_health_check_when_skip_health_check_is_false_by_default(SDKTest):
+    async def create_server(self, port: int) -> tuple[p.Server, Callable[[], p.Container]]:
+        test_container: p.Container = p.Container()
+
+        async def configure_container(container: p.Container) -> p.Container:
+            nonlocal test_container
+            test_container = container.clone()
+            return test_container
+
+        # Create server without skip_health_check parameter (should default to False)
+        return p.Server(
+            port=port,
+            tool_service_port=get_random_port(),
+            log_level=p.LogLevel.TRACE,
+            configure_container=configure_container,
+        ), lambda: test_container
+
+    async def setup(self, server: p.Server) -> None:
+        pass
+
+    async def run(self, ctx: Context) -> None:
+        # Verify that the server performed health check and is ready
+        assert ctx.server.ready.is_set()
+
+        # Verify health endpoint works
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"http://localhost:{ctx.server.port}/healthz")
+            assert response.status_code == 200
+            assert response.json() == {"status": "ok"}

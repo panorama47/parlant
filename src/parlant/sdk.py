@@ -3135,6 +3135,7 @@ class Server:
         configure_hooks: A callable to configure engine hooks.
         configure_container: A callable to configure the dependency injection container.
         initialize_container: A callable to perform additional initialization after the container is set up.
+        skip_health_check: Whether to skip the health check polling on startup. Defaults to False.
     """
 
     _current_server_var = contextvars.ContextVar[Optional["Server"]](
@@ -3158,6 +3159,7 @@ class Server:
         configure_container: Callable[[Container], Awaitable[Container]] | None = None,
         initialize_container: Callable[[Container], Awaitable[None]] | None = None,
         configure_api: Callable[[FastAPI], Awaitable[None]] | None = None,
+        skip_health_check: bool = False,
     ) -> None:
         self.host = host
         self.port = port
@@ -3177,6 +3179,7 @@ class Server:
         self._configure_container = configure_container
         self._initialize = initialize_container
         self._configure_api = configure_api
+        self._skip_health_check = skip_health_check
         self._retrievers: dict[
             AgentId,
             dict[str, RetrieverFunction],
@@ -3283,13 +3286,20 @@ class Server:
         await self._setup_retrievers()
 
         # Start health check polling to set ready event when the server is ready to receive requests
-        health_check_task = asyncio.create_task(self._poll_health_endpoint())
+        health_check_task: asyncio.Task[None] | None = None
+        if not self._skip_health_check:
+            health_check_task = asyncio.create_task(self._poll_health_endpoint())
+        else:
+            # Skip health check and mark server as ready immediately
+            self._ready_event.set()
+            self._container[Logger].info("Health check skipped. Server marked as ready.")
 
         # This actually starts the server
         await self._startup_context_manager.__aexit__(exc_type, exc_value, tb)
 
         # Wait for health check to complete before cleanup
-        await health_check_task
+        if health_check_task is not None:
+            await health_check_task
 
         await self._exit_stack.aclose()
         return False

@@ -1,4 +1,4 @@
-# Copyright 2026 Emcie Co Ltd.
+    # Copyright 2026 Emcie Co Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -675,6 +675,12 @@ class CannedResponseGenerator(MessageEventComposer):
                 "Sorry to hear that.",
                 "Definitely.",
                 "Let me check that for you.",
+                "你好!",
+                "稍等.",
+                "您好.",
+                "抱歉给您带来了不好的体验.",
+                "好的.",
+                "让我看看.",
             ]
 
             preamble_choices_text = "".join([f"\n- {choice}" for choice in preamble_choices])
