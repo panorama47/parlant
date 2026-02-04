@@ -86,7 +86,7 @@ class QwenEmbedder(BaseEmbedder):
 
         self._client = AsyncClient(
             base_url=os.environ.get(
-                "BASE_URL", "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+                "BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
             ),
             api_key=os.environ.get("DASHSCOPE_API_KEY", ""),
         )
@@ -139,7 +139,7 @@ class QwenEmbedder(BaseEmbedder):
 
 class QwenTextEmbedding_V4(QwenEmbedder):
     def __init__(self, logger: Logger, tracer: Tracer, meter: Meter) -> None:
-        super().__init__(model_name="text-embedding-v4", logger=logger, tracer=tracer, meter=meter)
+        super().__init__(model_name="text-embedding-v3", logger=logger, tracer=tracer, meter=meter)
 
     @property
     @override
@@ -169,7 +169,7 @@ class QwenSchematicGenerator(BaseSchematicGenerator[T]):
 
         self._client = AsyncClient(
             base_url=os.environ.get(
-                "BASE_URL", "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+                "BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
             ),
             api_key=os.environ["DASHSCOPE_API_KEY"],
         )

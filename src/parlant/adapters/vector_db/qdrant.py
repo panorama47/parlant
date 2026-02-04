@@ -1380,7 +1380,7 @@ class QdrantCollection(Generic[TDocument], BaseVectorCollection[TDocument]):
                 return []
 
             self._logger.trace(
-                f"Similar documents found\n{json.dumps([r.payload for r in search_results], indent=2)}"
+                f"Similar documents found\n{json.dumps([r.payload for r in search_results], indent=2, ensure_ascii=False)}"
             )
 
             return [
