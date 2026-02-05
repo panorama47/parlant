@@ -84,7 +84,10 @@ class QwenEmbedder(BaseEmbedder):
     def __init__(self, model_name: str, logger: Logger, tracer: Tracer, meter: Meter) -> None:
         super().__init__(logger=logger, tracer=tracer, meter=meter, model_name=model_name)
 
+        import httpx
+        http_client = httpx.AsyncClient(timeout=600.0)  # Increase timeout to 600s
         self._client = AsyncClient(
+            http_client=http_client,
             base_url=os.environ.get(
                 "BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
             ),
@@ -167,7 +170,10 @@ class QwenSchematicGenerator(BaseSchematicGenerator[T]):
         self._logger = logger
         self._meter = meter
 
+        import httpx
+        http_client = httpx.AsyncClient(timeout=600.0)  # Increase timeout to 600s for complex Journey evaluations
         self._client = AsyncClient(
+            http_client=http_client,
             base_url=os.environ.get(
                 "BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
             ),

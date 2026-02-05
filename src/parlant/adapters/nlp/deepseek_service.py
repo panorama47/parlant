@@ -82,7 +82,10 @@ class DeepSeekSchematicGenerator(BaseSchematicGenerator[T]):
         self._logger = logger
         self._meter = meter
 
+        import httpx
+        http_client = httpx.AsyncClient(timeout=600.0)  # Increase timeout to 600s for complex Journey evaluations
         self._client = AsyncClient(
+            http_client=http_client,
             base_url="https://api.deepseek.com",
             api_key=os.environ["DEEPSEEK_API_KEY"],
         )
