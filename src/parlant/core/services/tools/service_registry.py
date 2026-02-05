@@ -215,7 +215,7 @@ class ServiceDocumentRegistry(ServiceRegistry):
 
     async def _get_openapi_json_from_source(self, source: str) -> str:
         if source.startswith("http://") or source.startswith("https://"):
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(trust_env=False) as client:
                 response = await client.get(source)
                 response.raise_for_status()
                 return response.text

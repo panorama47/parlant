@@ -762,9 +762,12 @@ class PluginClient(ToolService):
         self._tracer = tracer
 
     async def __aenter__(self) -> PluginClient:
+        # Disable proxy for localhost connections to avoid 502 errors
+        # Use trust_env=False to ignore system proxy settings
         self._http_client = await httpx.AsyncClient(
             follow_redirects=True,
             timeout=httpx.Timeout(120),
+            trust_env=False,  # Ignore HTTP_PROXY and HTTPS_PROXY environment variables
         ).__aenter__()
         return self
 

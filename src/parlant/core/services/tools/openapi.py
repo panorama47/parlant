@@ -63,6 +63,7 @@ class OpenAPIClient(ToolService):
                     **{
                         **kwargs,
                         "timeout": httpx.Timeout(120),
+                        "trust_env": False,  # Ignore HTTP_PROXY and HTTPS_PROXY for localhost
                     },
                 )
 
