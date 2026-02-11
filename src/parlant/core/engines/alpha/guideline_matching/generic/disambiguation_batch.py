@@ -197,7 +197,7 @@ class GenericDisambiguationGuidelineMatchingBatch(GuidelineMatchingBatch):
                         GuidelineMatch(
                             guideline=self._disambiguation_guideline,
                             score=10 if inference.content.is_ambiguous else 1,
-                            rationale=f'''Disambiguation rationale: "{inference.content.tldr}"''',
+                            rationale=f'''消歧理由：「{inference.content.tldr}」''',
                             metadata=metadata,
                         )
                     ]
@@ -225,7 +225,7 @@ class GenericDisambiguationGuidelineMatchingBatch(GuidelineMatchingBatch):
     ) -> str:
         return "\n".join(
             f"""
-Example {i} - {shot.description}: ###
+示例 {i} - {shot.description}：###
 {self._format_shot(shot)}
 ###
 """
@@ -252,29 +252,29 @@ Example {i} - {shot.description}: ###
         formatted_shot = ""
         if shot.interaction_events:
             formatted_shot += f"""
-- **Interaction Events**:
+- **交互事件**：
 {json.dumps([adapt_event(e) for e in shot.interaction_events], indent=2)}
 
 """
         if shot.disambiguation_condition:
             formatted_shot += f"""
-- **Disambiguation Condition:**
+- **消歧条件**：
 {shot.disambiguation_condition.condition}
 
 """
         if shot.disambiguation_targets:
             formatted_guidelines = "\n".join(
-                f"{i}) Condition: {g.condition}. Action: {g.action}"
+                f"{i}) 条件：{g.condition}。动作：{g.action}"
                 for i, g in enumerate(shot.disambiguation_targets, start=1)
             )
             formatted_shot += f"""
-- **Guidelines**:
+- **指导原则**：
 {formatted_guidelines}
 
 """
 
         formatted_shot += f"""
-- **Expected Result**:
+- **期望结果**：
 ```json
 {json.dumps(shot.expected_result.model_dump(mode="json", exclude_unset=True), indent=2)}
 ```
@@ -290,8 +290,8 @@ Example {i} - {shot.description}: ###
         disambiguation_condition_internal = internal_representation(self._disambiguation_guideline)
 
         disambiguation_targets_text = "\n".join(
-            f"{id}) Condition: {', '.join(g.conditions) if len(g.conditions) > 1 else g.conditions[0]}. "
-            f"Action: {g.action}"
+            f"{id}) 条件：{', '.join(g.conditions) if len(g.conditions) > 1 else g.conditions[0]}。"
+            f"动作：{g.action}"
             for id, g in disambiguation_targets_guidelines.items()
         )
         builder = PromptBuilder(on_build=lambda prompt: self._logger.trace(f"Prompt:\n{prompt}"))
@@ -299,61 +299,52 @@ Example {i} - {shot.description}: ###
         builder.add_section(
             name="guideline-disambiguation-evaluator-general-instructions",
             template="""
-GENERAL INSTRUCTIONS
+总体说明
 -----------------
-In our system, the behavior of a conversational AI agent is guided by "guidelines". The agent makes use of these guidelines whenever it interacts with a customer (also referred to as the user).
-Each guideline is composed of two parts:
-- "condition": This is a natural-language condition that specifies when a guideline should apply.
-          We look at each conversation at its most recent state, and we evaluate this condition
-          to understand if we should have this guideline participate in generating
-          the next response to the customer.
-- "action": This is a natural-language instruction that should be followed by the agent
-          whenever the "condition" part of the guideline applies to the conversation at its latest state.
-          Any instruction described here applies only to the agent, and not to the customer.
+本系统中，对话 AI 客服的行为由「指导原则」指导。客服在与客户（也称用户）交互时会使用这些指导原则。
+每条指导原则由两部分组成：
+-「条件」：用自然语言描述指导原则何时适用。我们根据对话最近状态评估该条件，以判断该指导原则是否应参与生成对客户的下一条回复。
+-「动作」：当指导原则的「条件」在对话最新状态下成立时，客服应遵循的自然语言指令。此处描述仅针对客服，不针对客户。
 
-
-Task Description
+任务说明
 ----------------
-During your interaction with the customer, they may express a need or problem that could potentially be handled by multiple guidelines, creating ambiguity.
-This occurs when multiple guideline conditions might apply, but insufficient information is available to determine which one should apply.
-In such cases, we need to identify the potentially relevant guidelines and ask the customer which one they intended.
+在与客户交互时，客户可能表达可由多条指导原则处理的需求或问题，从而产生歧义。
+当多条指导原则条件可能同时适用，但信息不足以确定应适用哪一条时，即出现此情况。
+此时，我们需要识别可能相关的指导原则，并询问客户他们指的是哪一条。
 
-Your task is to determine whether the customer's intention is currently ambiguous with respect to the provided disambiguation condition and related guidelines, and, if so, what the possible interpretations or directions are.
-You will be given:
-1. An ambiguity condition that signals the potential ambiguity when true
-2. A list of related guidelines, each representing a possible path the customer might follow
+你的任务是判断客户意图在给定的消歧条件及相关指导原则下是否存在歧义；若存在，则确定可能的理解或方向。
+你将获得：
+1. 歧义条件：当为真时表示潜在歧义
+2. 相关指导原则列表，每条代表客户可能选择的一条路径
 
-Evaluate whether the ambiguity condition indeed holds in the current interaction context. 
-If it does, evaluate if there is more than one guideline whose condition can be relevant to the user's inquiry.
-If ambiguity exists (ambiguity condition is true AND multiple guidelines apply):
-    - Identify the relevant guidelines that represent the available options. Briefly explain how user's request can be interpreted as relevant for this guideline.
-    - Formulate a response in the format:
-    "Ask the customer whether they want to do X, Y, or Z..."
-    This response should clearly present the options to help resolve the ambiguity.
+评估歧义条件是否在当前交互上下文中成立。
+若成立，评估是否有多条指导原则的条件与用户的询问相关。
+若存在歧义（歧义条件为真且多条指导原则适用）：
+    - 识别代表可选方案的相关指导原则。简要说明用户的请求如何可被解读为该指导原则相关。
+    - 按以下格式拟定回复：
+    「询问客户是想要 X、Y 还是 Z…」
+    该回复应清晰呈现选项以帮助消除歧义。
 
-On detecting real ambiguity:
-- If the ambiguity is not directly related to the evaluated guideline, or if it is broader than the specific ambiguity condition being assessed, do not flag it as ambiguity.
-- Guidelines often describe very similar requests with subtle differences. If the customer has indicated which option is relevant to them, there is NO ambiguity - even if you think another similar guideline could also apply. 
-We don't want to detect ambiguity when the customer has already stated what they want. Trust the customer's stated intent rather than second - guessing whether they might have meant a similar alternative.
-Only disambiguate when the customer's request is genuinely unclear and could reasonably match multiple distinct paths.
-    For example:
-    If the guidelines include both "Return for refund" and "Return for exchange", and the customer says "I want to return this for a refund", do NOT ask if they meant an exchange instead. The customer has clearly stated their intent.
-- When ambiguity exists, include all plausible guidelines — let the customer choose among all viable options. 
-- Some guidelines may turn out to be irrelevant based on the interaction. For example, due to earlier parts of the conversation or because the user's status (provided in the interaction history or
-as a context variable) rules them out. If only one or no guidelines remain relevant, no ambiguity exists.
+关于识别真实歧义：
+- 若歧义与正在评估的指导原则无直接关联，或歧义范围超出当前评估的消歧条件，则不要标为歧义。
+- 指导原则往往以细微差别描述非常相似的请求。若客户已表明哪一选项与其相关，则不存在歧义——即使你认为另一类似指导原则也可能适用。
+当客户已明确表达其需求时，不要检测歧义。应信任客户表述的意图，而非猜测他们可能指的是类似替代。
+仅当客户请求确实不清、且可能合理匹配多条不同路径时才进行消歧。
+    例如：若指导原则同时包含「退货退款」和「退货换货」，而客户说「我想退货退款」，则不要询问是否指换货。客户已明确表达意图。
+- 当存在歧义时，包含所有可能适用的指导原则——让客户在所有可行选项中做选择。
+- 某些指导原则可能根据交互被判定为无关。例如，因对话更早部分或用户状态（来自交互历史或上下文变量）而排除。若仅剩一条或没有相关指导原则，则不存在歧义。
 
-After disambiguation was asked: 
-- If you've already asked for disambiguation from the customer, **pay extra attention** to whether you need to re-ask for clarification or whether the user responded and the ambiguity was already resolved.
-- **Accept brief customer responses as valid clarifications**: Customers often communicate with very short responses (single words or phrases like "return", "replace", "yes", "no"). If the customer's brief
- response clearly indicates their choice among the previously presented options, consider the ambiguity resolved even if their answer is not in complete sentence.
-- Carefully distinguish between the following cases:
-  1. Disambiguation requested and pending clarification (Disambiguation was already asked by the agent, but the customer hasn't answered yet) - In this case,  re-disambiguate (set disambiguation_requested = true, customer_resolved=false, is_ambiguous = true)
-  2. Disambiguation requested, clarification provided (customer has answered) - don't re-disambiguate the same issue (disambiguation_requested = true, customer_resolved=true, is_ambiguous = false)
-  3. New ambiguity (different unclear intent emerges) - do disambiguate (is_ambiguous = true)
+消歧已被询问后：
+- 若你已向客户请求消歧，请**特别注意**是否需要再次请求澄清，抑或用户已回复且歧义已消除。
+- **接受简短回复为有效澄清**：客户常以很短回复交流（单词或短语如「退货」「换货」「是」「否」）。若客户简短回复明确表明其在先前选项中做出的选择，即使回答不是完整句子，也应视为歧义已消除。
+- 仔细区分以下情况：
+  1. 已请求消歧且待澄清（客服已询问消歧，但客户尚未回答）——此情况下应重新消歧（设 disambiguation_requested = true、customer_resolved=false、is_ambiguous = true）
+  2. 已请求消歧且已提供澄清（客户已回答）——不要对同一问题再次消歧（disambiguation_requested = true、customer_resolved=true、is_ambiguous = false）
+  3. 新歧义（出现不同的不明意图）——应进行消歧（is_ambiguous = true）
 
-Focus on the current context: 
-Base your evaluation on the customer's most recent message. If the customer has changed the subject or moved on to a different topic in their most recent message, do not disambiguate previously unresolved issues.
-Always prioritize the customer's current request and intent over past ambiguities.
+关注当前上下文：
+基于客户最近一条消息进行评估。若客户在最近消息中已换题或转向不同话题，不要对之前未解决的歧义进行消歧。
+始终优先考虑客户当前请求和意图，而非过去的歧义。
 
 
 """,
@@ -362,7 +353,7 @@ Always prioritize the customer's current request and intent over past ambiguitie
         builder.add_section(
             name="guideline-ambiguity-evaluations-examples",
             template="""
-Examples of Guidelines Ambiguity Evaluation:
+指导原则歧义评估示例：
 -------------------
 {formatted_shots}
 """,
@@ -381,10 +372,10 @@ Examples of Guidelines Ambiguity Evaluation:
         builder.add_section(
             name=BuiltInSection.GUIDELINES,
             template="""
-- Ambiguity Condition: ###
+- 歧义条件：###
 {disambiguation_condition}
 ###
-- Guidelines List: ###
+- 指导原则列表：###
 {disambiguation_targets_text}
 ###
 """,
@@ -398,9 +389,9 @@ Examples of Guidelines Ambiguity Evaluation:
             name="guideline-disambiguation-evaluation-output-format",
             template="""
 
-OUTPUT FORMAT
+输出格式
 -----------------
-- Specify the evaluation of disambiguation by filling in the details in the following list as instructed:
+- 按说明填写下列列表中消歧评估的细节：
 ```json
 {result_structure_text}
 ```
@@ -418,20 +409,20 @@ OUTPUT FORMAT
         self, disambiguation_targets_guidelines: dict[str, _Guideline]
     ) -> str:
         result = {
-            "tldr": "<str, Briefly state the customer's most recent intent based on their LATEST input, and explain why it is ambiguous with respect to the ambiguity condition and the provided guidelines>",
-            "ambiguity_condition_met": "<BOOL. Whether the ambiguity condition is met based on the interaction>",
-            "disambiguation_requested": "<BOOL. Based on the interaction, whether a clarification was asked by the agent. If so, is_ambiguous will be true only if customer has not answered OR customer changed request OR there is a new ambiguity to resolve>",
-            "customer_resolved": "<BOOL. Include if disambiguation_requested=true. Whether the latest requested ambiguity was already resolved by the user>",
+            "tldr": "<str，根据客户最新输入简要说明其最近意图，并解释为何相对于歧义条件和给定指导原则存在歧义>",
+            "ambiguity_condition_met": "<BOOL，根据交互判断歧义条件是否满足>",
+            "disambiguation_requested": "<BOOL，根据交互判断客服是否已请求澄清。若是，is_ambiguous 仅在客户未回答或客户更改请求或出现新歧义时为 true>",
+            "customer_resolved": "<BOOL，当 disambiguation_requested=true 时包含。用户是否已解决最新请求的歧义>",
             "is_ambiguous": "<BOOL>",
             "guidelines (include only if is_ambiguous is True)": [
                 {
                     "guideline_id": i,
-                    "tldr": "<str. Brief explanation of whether this guideline needs disambiguation, is clearly relevant or is not relevant>",
-                    "requires_disambiguation": "<BOOL. Whether the guideline is relevant and need to participate in disambiguation request>",
+                    "tldr": "<str，简要说明本指导原则是否需要消歧、是否明确相关或是否无关>",
+                    "requires_disambiguation": "<BOOL，本指导原则是否相关且需参与消歧请求>",
                 }
                 for i in disambiguation_targets_guidelines.keys()
             ],
-            "clarification_action": "<Include only if is_ambiguous is True. An action of the form ask the user whether they want to...>",
+            "clarification_action": "<仅当 is_ambiguous 为 True 时包含。形如「询问用户是否想要…」的动作>",
         }
         return json.dumps(result, indent=4)
 

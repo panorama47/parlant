@@ -216,7 +216,7 @@ class GenericResponseAnalysisBatch(ResponseAnalysisBatch):
 
     def _format_shots(self, shots: Sequence[GenericResponseAnalysisShot]) -> str:
         return "\n".join(
-            f"Example #{i}: ###\n{self._format_shot(shot)}" for i, shot in enumerate(shots, start=1)
+            f"示例 #{i}：###\n{self._format_shot(shot)}" for i, shot in enumerate(shots, start=1)
         )
 
     def _format_shot(
@@ -242,23 +242,23 @@ class GenericResponseAnalysisBatch(ResponseAnalysisBatch):
         formatted_shot = ""
         if shot.interaction_events:
             formatted_shot += f"""
-- **Interaction Events**:
+- **交互事件**：
 {json.dumps([adapt_event(e) for e in shot.interaction_events], indent=2)}
 
 """
         if shot.guidelines:
             formatted_guidelines = "\n".join(
-                f"{i}) Condition: {g.condition}, Action: {g.action}"
+                f"{i}) 条件：{g.condition}，动作：{g.action}"
                 for i, g in enumerate(shot.guidelines, start=1)
             )
             formatted_shot += f"""
-- **Guidelines**:
+- **指导原则**：
 {formatted_guidelines}
 
 """
 
         formatted_shot += f"""
-- **Expected Result**:
+- **期望结果**：
 ```json
 {json.dumps(shot.expected_result.model_dump(mode="json", exclude_unset=True), indent=2)}
 ```
@@ -272,16 +272,16 @@ class GenericResponseAnalysisBatch(ResponseAnalysisBatch):
         guideline_representations: dict[GuidelineId, GuidelineInternalRepresentation],
     ) -> str:
         guidelines_text = "\n".join(
-            f"{i}) Condition: {guideline_representations[g.id].condition}. Action: {guideline_representations[g.id].action}"
+            f"{i}) 条件：{guideline_representations[g.id].condition}。动作：{guideline_representations[g.id].action}"
             for i, g in guidelines.items()
         )
 
         return f"""
-GUIDELINES
+指导原则
 ---------------------
-Those are the guidelines you need to evaluate if they were applied.
+以下指导原则需评估是否已被应用。
 
-Guidelines:
+指导原则：
 ###
 {guidelines_text}
 ###
@@ -301,57 +301,49 @@ Guidelines:
         builder.add_section(
             name="guideline-previously-applied-general-instructions",
             template="""
-GENERAL INSTRUCTIONS
+总体说明
 -----------------
-In our system, the behavior of a conversational AI agent is guided by "guidelines". The agent makes use of these guidelines whenever it interacts with a user (also referred to as the customer).
-Each guideline is composed of two parts:
-- "condition": This is a natural-language condition that specifies when a guideline should apply.
-          We look at each conversation at any particular state, and we test against this
-          condition to understand if we should have this guideline participate in generating
-          the next reply to the user.
-- "action": This is a natural-language instruction that should be followed by the agent
-          whenever the "condition" part of the guideline applies to the conversation in its particular state.
-          Any instruction described here applies only to the agent, and not to the user.
+本系统中，对话 AI 客服的行为由「指导原则」指导。客服在与用户（也称客户）交互时会使用这些指导原则。
+每条指导原则由两部分组成：
+-「条件」：用自然语言描述指导原则何时适用。我们根据对话任一状态检查该条件，以判断该指导原则是否应参与生成对用户的下一条回复。
+-「动作」：当指导原则的「条件」在对话特定状态下成立时，客服应遵循的自然语言指令。此处描述仅针对客服，不针对用户。
 
 
-Task Description
+任务说明
 ----------------
-Your task is to evaluate whether the action specified by each guideline has now been applied. The guideline/s you are reviewing has not yet been marked as applied, and you need to determine if the latest agent message in the conversation
-satisfies its action so the action can now be considered as applied.
+你的任务是评估每条指导原则指定的动作是否已被应用。你正在审查的指导原则尚未标记为已应用，需判断对话中客服的最新消息是否满足其动作，从而使该动作可视为已应用。
 
-1. Focus on Agent-Side Requirements in Action Evaluation:
-Note that some guidelines may involve a requirement that depends on the customer's response. For example, an action like "get the customer's card number" requires the agent to ask for this information, and the customer to provide it for full
+1. 动作评估中关注客服侧要求：
+某些指导原则可能包含 依赖客户回复的要求。 For example, an action like "get the customer's card number" requires the agent to ask for this information, and the customer to provide it for full
 completion. In such cases, you should evaluate only the agent’s part of the action. Since evaluation occurs after the agent’s message, the action is considered applied if the agent has done its part (e.g., asked for the information),
-regardless of whether the customer has responded yet.
+不论客户是否已回复。
 
-2. Distinguish Between Functional and Behavioral Actions
-Some guidelines include multiple actions. If only part of the guideline has been fulfilled, you need to evaluate whether the missing part is functional or behavioral.
+2. 区分功能性与行为性动作
+某些指导原则包含多个动作。若仅部分已履行，需判断缺失部分属功能性还是行为性。
 
-- A "functional" action directly contributes to resolving the customer’s issue or progressing the task at hand. These actions are core to the outcome of the interaction. If omitted, they may leave the issue unresolved, cause confusion,
-or make the response ineffective.
-If a functional action is missing, the guideline should not be considered applied.
+-「功能性」动作直接有助于 to resolving the customer’s issue or progressing the task at hand. These actions are core to the outcome of the interaction. If omitted, they may leave the issue unresolved, cause confusion,
+或使回复无效。
+若功能性动作缺失，指导原则不应视为已应用。
 
-- A "behavioral" action is related to the tone, empathy, or politeness of the interaction. These actions improve customer experience and rapport, but are not critical to achieving the customer's goal.
-If a behavioral action is missing and the functional need is met, you can treat the guideline as applied.
+-「行为性」动作与交互的语气、共情或礼貌相关。这类动作提升客户体验和信任，但对达成客户目标并非关键。
+若行为性动作缺失但功能性需求已满足，可将指导原则视为已应用。
 
-Examples of behavioral actions:
-- Expressing empathy or understanding
-- Offering apologies or regret
-- Thanking the customer
-- Using polite conversational phrases (e.g., greetings, closings)
-- Offering encouragement or reassurance
-- Using exact or brand-preferred wording to say something already conveyed
+行为性动作示例：
+- 表达共情或理解
+- 致歉或表示遗憾
+- 感谢客户
+- 使用礼貌对话用语（如问候、结束语）
+- 给予鼓励或安抚
+- 使用精确或品牌偏好的措辞传达已表述内容
 
-Because behavioral actions are most effective when used in the moment, there's no need to return and perform them later. Their absence does not require the guideline to be marked as unfulfilled.
-A helpful test:
+行为性动作在当下使用时最有效，无需事后补做。 其缺失不要求将指导原则标为未履行。
+可参考判断：
 “If the conversation were to continue, would the agent need to go back and perform that missing action?”
-If the answer is no, it's likely behavioral and the guideline can be considered fulfilled.
-If the answer is yes, it's likely functional and the guideline is still unfulfilled.
+若答案为否，可能为行为性，指导原则可视为已履行。
+若答案为是，可能为功能性，指导原则仍为未履行。
 
-3. Evaluate Action Regardless of Condition:
-You are given a condition-action guideline. Your task is to to assess only whether the action was carried out — as if the condition had been met. In some cases, the action may have been carried out for a different reason — triggered by another
-condition of a different guideline, or even offered spontaneously during the interaction. However, for evaluation purposes, we are only checking whether the action occurred, regardless of why it happened. So even if the condition in the guideline
- wasn't the reason the action was taken, the action will still counts as fulfilled.
+3. 无论条件如何均评估动作：
+给定条件-动作指导原则，仅评估动作是否已执行——如同条件已满足。有时动作可能因其他原因执行——由另一指导原则的条件触发，或在交互中自发提供。但就评估而言，我们只检查动作是否发生，不论原因。因此，即便指导原则中的条件不是执行动作的原因，动作仍计为已履行。
 
 """,
             props={},
@@ -359,7 +351,7 @@ condition of a different guideline, or even offered spontaneously during the int
         builder.add_section(
             name="guideline-previously-applied-examples",
             template="""
-Examples of ...:
+指导原则应用评估示例：
 -------------------
 {formatted_shots}
 """,
@@ -385,11 +377,11 @@ Examples of ...:
         builder.add_section(
             name="guideline-previously-applied-output-format",
             template="""
-IMPORTANT: Please note there are exactly {guidelines_len} guidelines in the list for you to check.
+重要：列表中恰好有 {guidelines_len} 条指导原则需要你检查。
 
-OUTPUT FORMAT
+输出格式
 -----------------
-- Specify if each guideline was applied by filling in the details in the following list as instructed:
+- 按说明填写下列列表中每条指导原则是否已被应用：
 ```json
 {result_structure_text}
 ```
@@ -416,13 +408,13 @@ OUTPUT FORMAT
                 "action": guideline_representations[g.id].action,
                 "guideline_applied_rationale": [
                     {
-                        "action_segment": "<action_segment_description>",
-                        "action_applied_rationale": "<explanation of whether this action segment (apart from condition) was applied by the agent; to avoid pitfalls, try to use the exact same words here as the action segment to determine this. use CAPITALS to highlight the same words in the segment as in your explanation>",
+                        "action_segment": "<动作片段描述>",
+                        "action_applied_rationale": "<说明该动作片段（不含条件）是否已被客服应用；为避免偏差，尽量使用与动作片段相同的措辞判断，并用大写突出片段与说明中的相同词语>",
                     }
                 ],
-                "guideline_applied_degree": "<str: either 'no', 'partially' or 'fully' depending on whether and to what degree the action was preformed (apart from condition)>",
-                "is_missing_part_functional_or_behavioral_rationale": "<str: only included if guideline_applied is 'partially'. short explanation of whether the missing part is functional or behavioral.>",
-                "is_missing_part_functional_or_behavioral": "<str: only included if guideline_applied is 'partially'.>",
+                "guideline_applied_degree": "<str：根据动作（不含条件）是否及在何种程度上已执行，取 'no'、'partially' 或 'fully'>",
+                "is_missing_part_functional_or_behavioral_rationale": "<str：仅当 guideline_applied 为 'partially' 时包含。简短说明缺失部分属功能性还是行为性。>",
+                "is_missing_part_functional_or_behavioral": "<str：仅当 guideline_applied 为 'partially' 时包含。>",
                 "guideline_applied": "<bool>",
             }
             for i, g in guidelines.items()

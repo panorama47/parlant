@@ -165,7 +165,7 @@ class GenericObservationalGuidelineMatchingBatch(GuidelineMatchingBatch):
 
     def _format_shots(self, shots: Sequence[GenericObservationalGuidelineMatchingShot]) -> str:
         return "\n".join(
-            f"Example #{i}: ###\n{self._format_shot(shot)}" for i, shot in enumerate(shots, start=1)
+            f"示例 #{i}：###\n{self._format_shot(shot)}" for i, shot in enumerate(shots, start=1)
         )
 
     def _format_shot(self, shot: GenericObservationalGuidelineMatchingShot) -> str:
@@ -188,7 +188,7 @@ class GenericObservationalGuidelineMatchingBatch(GuidelineMatchingBatch):
         formatted_shot = ""
         if shot.interaction_events:
             formatted_shot += f"""
-- **Interaction Events**:
+- **交互事件**：
 {json.dumps([adapt_event(e) for e in shot.interaction_events], indent=2)}
 
 """
@@ -197,13 +197,13 @@ class GenericObservationalGuidelineMatchingBatch(GuidelineMatchingBatch):
                 f"{i}) {g.condition}" for i, g in enumerate(shot.guidelines, start=1)
             )
             formatted_shot += f"""
-- **Guidelines**:
+- **指导原则**：
 {formatted_guidelines}
 
 """
 
         formatted_shot += f"""
-- **Expected Result**:
+- **期望结果**：
 ```json
 {json.dumps(shot.expected_result.model_dump(mode="json", exclude_unset=True), indent=2)}
 ```
@@ -223,7 +223,7 @@ class GenericObservationalGuidelineMatchingBatch(GuidelineMatchingBatch):
             {
                 "guideline_id": i,
                 "condition": guideline_representations[g.id].condition,
-                "rationale": "<Explanation for why the condition is or isn't met based on the recent interaction>",
+                "rationale": "<根据最近交互说明该条件为何满足或不满足>",
                 "applies": "<BOOL>",
             }
             for i, g in self._guidelines.items()
@@ -238,36 +238,32 @@ class GenericObservationalGuidelineMatchingBatch(GuidelineMatchingBatch):
         builder.add_section(
             name="observational-guideline-matcher-general-instructions-task-description",
             template="""
-GENERAL INSTRUCTIONS
+总体说明
 -----------------
-In our system, the behavior of a conversational AI agent is guided by how the current state of its interaction with a customer (also referred to as "the user") compares to a number of pre-defined conditions:
+本系统中，对话 AI 客服的行为由当前与客户（也称「用户」）的交互状态与若干预定义条件的比较结果指导：
 
-- "condition": This is a natural-language condition that specifies when a guideline should apply.
-          We evaluate each conversation at its current state against these conditions
-          to determine which guidelines should inform the agent's next reply.
+-「条件」：用自然语言描述指导原则何时适用。我们根据对话当前状态评估这些条件，以确定哪些指导原则应参与客服的下一条回复。
 
-The agent will receive relevant information for its response based on the conditions that are deemed to apply to the current state of the interaction.
+客服将根据被判定适用于当前交互状态的条件，获得与回复相关的信息。
 
-Task Description
+任务说明
 ----------------
-Your task is to evaluate the relevance and applicability of a set of provided 'when' conditions to the most recent state of an interaction between yourself (an AI agent) and a user.
+你的任务是评估一组给定的「何时」条件与你（AI 客服）和用户之间交互的最近状态的相关性与适用性。
 
-A guideline should be marked as applicable if it is relevant to the latest part of the conversation and in particular to the most recent customer message. Do not mark a guideline as
-applicable solely based on earlier parts of the conversation if the topic has since shifted, even if the previous topic remains unresolved or its action was never carried out.
+若指导原则与对话最新部分、尤其是最近一条客户消息相关，则标为适用。若话题已转换，不要仅根据对话较早部分将指导原则标为适用，即使之前话题未解决或该动作从未执行。
 
-If the conversation shifts from a broad issue to a related sub-issue (a detail or follow-up within the same overall topic), the guideline remains applicable as long as it’s relevant to that sub-issue.
-However, once the discussion moves to an entirely new topic, previous guidelines should no longer be considered applicable.
-A guideline is not applicable when the customer explicitly sets aside or pauses the original issue to address something else, even if they plan to return to it later.
-Similarly, if the conversation has progressed beyond the specific sub-topic mentioned in the condition and into a different aspect or next stage of the general topic, the condition no longer applies.
-This approach ties applicability to the current conversational context while preserving continuity when exploring related subtopics.
+若对话从较宽泛的问题转向相关子问题（同一整体话题下的细节或后续），只要指导原则与该子问题相关，仍应视为适用。
+反之，一旦讨论转向全新话题，之前的指导原则不应再视为适用。
+当客户明确搁置或暂停原问题转而处理其他事项时，指导原则不适用，即使客户打算稍后回到原问题。
+同样，若对话已超出条件中提到的具体子话题，进入该总话题的另一方面或下一阶段，则该条件不再适用。
+此做法将适用性绑定到当前对话上下文，同时在探索相关子话题时保持连续性。
 
-Persistent Facts: Conditions about user characteristics or established facts (e.g., "the user is a senior citizen", "the customer has allergies") apply once established based on the information in this prompt,
-regardless of current discussion topic.
+持久事实：关于用户特征或已确立事实的条件（如「用户是老年人」「客户比较敏感」）一旦根据本提示中的信息确立，即适用，与当前讨论话题无关。
 
-When evaluating whether the conversation has shifted to a related sub-issue versus a completely different topic, consider whether the customer remains interested in resolving their previous inquiry that fulfilled the condition.
-If the customer is still pursuing that original inquiry, then the current discussion should be considered a sub-issue of it. Do not concern yourself with whether the original issue was resolved - only ask if the current issue at hand is a sub-issue of the condition.
+在判断对话是转向相关子问题还是完全不同的话题时，考虑客户是否仍有意解决此前满足该条件的询问。
+若客户仍在追求该原始询问，则当前讨论应视为其子问题。不必关心原问题是否已解决，只需判断当前问题是否为该条件的子问题。
 
-The exact format of your response will be provided later in this prompt.
+回复的确切格式将在本提示后文给出。
 
 """,
             props={},
@@ -275,7 +271,7 @@ The exact format of your response will be provided later in this prompt.
         builder.add_section(
             name="observational-guideline-matcher-examples-of-condition-evaluations",
             template="""
-Examples of Condition Evaluations:
+条件评估示例：
 -------------------
 {formatted_shots}
 """,
@@ -294,7 +290,7 @@ Examples of Condition Evaluations:
         builder.add_section(
             name=BuiltInSection.GUIDELINES,
             template="""
-- Conditions List: ###
+- 指导原则列表：###
 {guidelines_text}
 ###
 """,
@@ -305,11 +301,11 @@ Examples of Condition Evaluations:
         builder.add_section(
             name="observational-guideline-matcher-expected-output",
             template="""
-IMPORTANT: Please note there are exactly {guidelines_len} guidelines in the list for you to check.
+重要：列表中恰好有 {guidelines_len} 条指导原则需要你检查。
 
-Expected Output
+期望输出
 ---------------------------
-- Specify the applicability of each guideline by filling in the details in the following list as instructed:
+- 按说明填写下列列表中每条指导原则的适用性：
 
     ```json
     {{

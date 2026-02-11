@@ -465,7 +465,7 @@ OUTPUT FORMAT
 
     def _format_shots(self, shots: Sequence[JourneyNextStepSelectionShot]) -> str:
         return "\n".join(
-            f"Example #{i}: {shot.journey_title}\n{self._format_shot(shot)}"
+            f"示例 #{i}：{shot.journey_title}\n{self._format_shot(shot)}"
             for i, shot in enumerate(shots, start=1)
         )
 
@@ -538,47 +538,47 @@ OUTPUT FORMAT
         builder.add_section(
             name="journey-step-selection-general-instructions",
             template="""
-GENERAL INSTRUCTIONS
+总体说明
 -------------------
-You are an AI agent named {agent_name} whose role is to engage in multi-turn conversations with customers on behalf of a business.
-Your interactions are structured around predefined "journeys" - systematic processes that guide customer conversations toward specific outcomes.
+你是一名名为 {agent_name} 的 AI 客服，代表企业与客户进行多轮对话。
+对话围绕预定义的「旅程」展开——即引导客户对话达成特定结果的系统化流程。
 
-## Journey Structure
-Each journey consists of:
-- **Steps**: Individual actions you must take (e.g., ask a question, provide information, perform a task)
-- **Transitions**: Rules that determine which step comes next based on customer responses or completion status
-- **Flags**: Special properties that modify how steps behave
+## 旅程结构
+每个旅程包含：
+- **步骤**：你需要执行的单个动作（如提问、提供信息、执行任务）
+- **转换**：根据客户回复或完成状态决定下一步的规则
+- **标志**：影响步骤行为的特殊属性
 
-## Your Core Task
-Analyze the current conversation state and determine the next appropriate journey step, by evaluating which condition holds based on the last step that was performed and the current state of the conversation.
+## 核心任务
+根据当前对话状态、上一步已执行的步骤以及对话状态，分析并确定下一个合适的旅程步骤。
     """,
             props={"agent_name": self._context.agent.name},
         )
         builder.add_section(
             name="journey-next-step-selection-task-description",
             template="""
-TASK DESCRIPTION
+任务说明
 -------------------
-## 1: Journey Context Check
-Determine if the conversation should continue within the current journey.
-Once a journey has begun, continue following it unless the customer explicitly indicates they no longer want to pursue the journey's original goal.
-**Important**: The activation condition only starts a journey. It does NOT need to remain true for the journey to continue.
-If the journey should end, set `applied_condition_id` to `"None"`.
+## 1：旅程上下文检查
+判断对话是否应继续处于当前旅程中。
+旅程一旦开始，应持续跟随，除非客户明确表示不再追求该旅程的原始目标。
+**重要**：激活条件仅用于启动旅程，旅程继续时不必持续满足。
+若旅程应结束，将 `applied_condition_id` 设为 `"None"`。
 
-## 2: Current Step Completion
+## 2：当前步骤完成情况
 Evaluate whether the last executed step is complete:
-    - For CUSTOMER_DEPENDENT steps: The step is completed if customer has provided the required information. It can be either after being asked or proactively in earlier messages.
+    - 对于「依赖客户操作」步骤： The step is completed if customer has provided the required information. It can be either after being asked or proactively in earlier messages.
     If the customer provided the information, set current_step_completed to 'true'.
     If not, set completed to 'current_step_completed' as 'false' and applied_condition_id as '0'.
 
-    - For REQUIRES AGENT ACTION steps: The step is completed if the agent has performed the required communication or action.
+    - 对于「需客服执行」步骤： The step is completed if the agent has performed the required communication or action.
     If so, set current_step_completed to 'true'.
     If not, set 'current_step_completed' as 'false' and applied_condition_id as '0'.
 
-    - For TOOL EXECUTION steps: The tool was executed, and its result will appear as a staged event. Evaluate which condition applies for the next transition based on the tool result..
+    - 对于「工具执行」步骤： The tool was executed, and its result will appear as a staged event. Evaluate which condition applies for the next transition based on the tool result..
         Note that the tool execution is the final action in the interaction, meaning all message exchanges occurred beforehand. Make sure to consider this order in your evaluation.
 
-## 3: Journey Advancement
+## 3：旅程推进
 If the journey continues AND the current step is complete, choose the next step by evaluating which condition best fits.
 The condition contains one or more sub-conditions that must all be evaluated and met for the condition to be considered the best match.
 
@@ -609,12 +609,12 @@ You will be given a description of the current step that need to execute, and th
         builder.add_section(
             name="journey-next-step-selection-examples",
             template="""
-    Examples of Journey Step Selections:
+    旅程步骤选择示例：
     -------------------
     {formatted_shots}
 
 ###
-Example section is over. The following is the real data you need to use for your decision.
+示例部分结束。以下为你需要据此做出判断的真实数据。
     """,
             props={
                 "formatted_shots": self._format_shots(shots),
@@ -647,7 +647,7 @@ Example section is over. The following is the real data you need to use for your
 
         builder.add_section(
             name="journey-general_reminder-section",
-            template="""Reminder - carefully consider all restraints and instructions. You MUST succeed in your task, otherwise you will cause damage to the customer or to the business you represent.""",
+            template="""提醒：请认真遵守所有约束与说明。你必须完成本任务，否则可能对客户或所代表的企业造成损害。""",
         )
 
         return builder

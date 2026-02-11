@@ -163,7 +163,7 @@ class GenericPreviouslyAppliedActionableGuidelineMatchingBatch(GuidelineMatching
         self, shots: Sequence[GenericPreviouslyAppliedActionableGuidelineGuidelineMatchingShot]
     ) -> str:
         return "\n".join(
-            f"Example #{i}: ###\n{self._format_shot(shot)}" for i, shot in enumerate(shots, start=1)
+            f"示例 #{i}：###\n{self._format_shot(shot)}" for i, shot in enumerate(shots, start=1)
         )
 
     def _format_shot(
@@ -188,7 +188,7 @@ class GenericPreviouslyAppliedActionableGuidelineMatchingBatch(GuidelineMatching
         formatted_shot = ""
         if shot.interaction_events:
             formatted_shot += f"""
-- **Interaction Events**:
+- **交互事件**：
 {json.dumps([adapt_event(e) for e in shot.interaction_events], indent=2)}
 
 """
@@ -197,13 +197,13 @@ class GenericPreviouslyAppliedActionableGuidelineMatchingBatch(GuidelineMatching
                 f"{i}) {g.condition}" for i, g in enumerate(shot.guidelines, start=1)
             )
             formatted_shot += f"""
-- **Guidelines**:
+- **指导原则**：
 {formatted_guidelines}
 
 """
 
         formatted_shot += f"""
-- **Expected Result**:
+- **期望结果**：
 ```json
 {json.dumps(shot.expected_result.model_dump(mode="json", exclude_unset=True), indent=2)}
 ```
@@ -220,7 +220,7 @@ class GenericPreviouslyAppliedActionableGuidelineMatchingBatch(GuidelineMatching
         }
 
         guidelines_text = "\n".join(
-            f"{i}) Condition: {guideline_representations[g.id].condition}. Action: {guideline_representations[g.id].action}"
+            f"{i}) 条件：{guideline_representations[g.id].condition}。动作：{guideline_representations[g.id].action}"
             for i, g in self._guidelines.items()
         )
 
@@ -229,46 +229,37 @@ class GenericPreviouslyAppliedActionableGuidelineMatchingBatch(GuidelineMatching
         builder.add_section(
             name="guideline-previously-applied-general-instructions",
             template="""
-GENERAL INSTRUCTIONS
+总体说明
 -----------------
-In our system, the behavior of a conversational AI agent is guided by "guidelines". The agent makes use of these guidelines whenever it interacts with a user (also referred to as the customer).
-Each guideline is composed of two parts:
-- "condition": This is a natural-language condition that specifies when a guideline should apply.
-          We look at each conversation at any particular state, and we test against this
-          condition to understand if we should have this guideline participate in generating
-          the next reply to the user.
-- "action": This is a natural-language instruction that should be followed by the agent
-          whenever the "condition" part of the guideline applies to the conversation in its particular state.
-          Any instruction described here applies only to the agent, and not to the user.
+本系统中，对话 AI 客服的行为由「指导原则」指导。客服在与用户（也称客户）交互时会使用这些指导原则。
+每条指导原则由两部分组成：
+-「条件」：用自然语言描述指导原则何时适用。我们根据对话任一状态检查该条件，以判断该指导原则是否应参与生成对用户的下一条回复。
+-「动作」：当指导原则的「条件」在对话特定状态下成立时，客服应遵循的自然语言指令。此处描述仅针对客服，不针对用户。
 
-
-Task Description
+任务说明
 ----------------
-You will be given a set of guidelines, each associated with an action that has already been applied one or more times during the conversation.
+你将获得一组指导原则，每条关联一个已在对话中执行过一次或多次的动作。
 
-In general, a guideline should be reapplied if:
+一般而言，若满足以下情况，应重新适用指导原则：
 1. The condition is met again for a new reason in the most recent user message, and
 2. The associated action has not yet been taken in response to this new occurrence, but still needs to be.
 
 Your task is to determine whether reapplying the action is appropriate, based on whether the guideline’s condition is met again in a way that justifies repeating the action. We will want to repeat the action if the current application refers
  to a new or subtly different context or information
-For example, a guideline with the condition “the customer is asking a question” should be reapplied each time the customer asks a new question.
+例如，条件为 “the customer is asking a question” should be reapplied each time the customer asks a new question.
 In contrast, guidelines involving one-time behaviors (e.g., “send the user our address”) should be reapplied more conservatively: only if the condition ceased to be true for a while and is now clearly true again in the current context.
 For instance, if the customer previously complained about an issue and you already offered compensation, then mentions the same issue again, it is usually not necessary to repeat the compensation offer. However, if the customer raises a new
  issue or clearly indicates a different concern, it may warrant reapplying the guideline.
 
--- Focusing on the most recent context --
-When evaluating whether a guideline should be reapplied, the most recent part of the conversation, specifically the last user message, is what matters. A guideline should only be reapplied if its condition is clearly met again in that latest message.
+-- 关注最近上下文 --
+评估是否应重新适用指导原则时，对话最近部分、尤其是最后一条用户消息是关键。 仅当该最新消息中条件明确再次满足时，才应重新适用。
 Always base your decision on the current context to avoid unnecessary repetition and to keep the response aligned with the user’s present needs.
-Context May Shift:
-    Sometimes, the user may briefly raise an issue that would normally trigger a guideline, but then shift the topic within the same message or shortly after. In such cases, the condition should NOT be considered active, and the guideline should
-    not be reapplied.
-Conditions Can Arise and Resolve Multiple Times:
-    A condition may be met more than once over the course of a conversation and may also be resolved multiple times (the action was taken). If the most recent instance of the condition has already been addressed and resolved, there is no need to
-    reapply the guideline. However, if the user is still clearly engaging with the same unresolved issue, or if a new instance of the condition arises, reapplying the guideline may be appropriate.
+上下文可能转换：
+    有时，用户可能简要提出通常会触发指导原则的问题，但随即在同一消息内或不久后换题。此类情况下，不应认为条件成立，且不应重新适用该指导原则。
+条件可能多次出现并解决：
+    条件在对话过程中可能多次满足，也可能多次解决（动作已执行）。若条件最近一次实例已得到处理并解决，则无需重新适用。但若用户仍在明显处理同一未解决问题，或条件出现新实例，则可能适合重新适用。
 
-
-The conversation and guidelines will follow. Instructions on how to format your response will be provided after that.
+对话和指导原则将随后给出。回复格式说明将在之后提供。
 
 """,
             props={},
@@ -276,7 +267,7 @@ The conversation and guidelines will follow. Instructions on how to format your 
         builder.add_section(
             name="guideline-matcher-examples-of-previously-applied-evaluations",
             template="""
-Examples of Guideline Match Evaluations:
+指导原则匹配评估示例：
 -------------------
 {formatted_shots}
 """,
@@ -295,7 +286,7 @@ Examples of Guideline Match Evaluations:
         builder.add_section(
             name=BuiltInSection.GUIDELINES,
             template="""
-- Conditions List: ###
+- 指导原则列表：###
 {guidelines_text}
 ###
 """,
@@ -312,11 +303,11 @@ Examples of Guideline Match Evaluations:
         builder.add_section(
             name="guideline-previously-applied-output-format",
             template="""
-IMPORTANT: Please note there are exactly {guidelines_len} guidelines in the list for you to check.
+重要：列表中恰好有 {guidelines_len} 条指导原则需要你检查。
 
-OUTPUT FORMAT
+输出格式
 -----------------
-- Specify the applicability of each guideline by filling in the details in the following list as instructed:
+- 按说明填写下列列表中每条指导原则的适用性：
 ```json
 {result_structure_text}
 ```
@@ -339,8 +330,8 @@ OUTPUT FORMAT
                 "guideline_id": i,
                 "condition": guideline_representations[g.id].condition,
                 "action": guideline_representations[g.id].action,
-                "condition_met_again": "<BOOL. Whether the condition met again in a new or subtly different context or information>",
-                "action_wasnt_taken": "<BOOL. include only condition_met_again is True if The action wasn't already taken for this new reason>",
+                "condition_met_again": "<BOOL，条件是否在新或略有不同的上下文或信息中再次满足>",
+                "action_wasnt_taken": "<BOOL，仅当 condition_met_again 为 True 时包含。是否尚未因该新原因执行该动作>",
                 "should_reapply": "<BOOL>",
             }
             for i, g in self._guidelines.items()

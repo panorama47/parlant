@@ -171,7 +171,7 @@ class GenericPreviouslyAppliedActionableCustomerDependentGuidelineMatchingBatch(
         shots: Sequence[GenericPreviouslyAppliedActionableCustomerDependentGuidelineMatchingShot],
     ) -> str:
         return "\n".join(
-            f"Example #{i}: ###\n{self._format_shot(shot)}" for i, shot in enumerate(shots, start=1)
+            f"示例 #{i}：###\n{self._format_shot(shot)}" for i, shot in enumerate(shots, start=1)
         )
 
     def _format_shot(
@@ -196,7 +196,7 @@ class GenericPreviouslyAppliedActionableCustomerDependentGuidelineMatchingBatch(
         formatted_shot = ""
         if shot.interaction_events:
             formatted_shot += f"""
-- **Interaction Events**:
+- **交互事件**：
 {json.dumps([adapt_event(e) for e in shot.interaction_events], indent=2)}
 
 """
@@ -205,13 +205,13 @@ class GenericPreviouslyAppliedActionableCustomerDependentGuidelineMatchingBatch(
                 f"{i}) {g.condition}" for i, g in enumerate(shot.guidelines, start=1)
             )
             formatted_shot += f"""
-- **Guidelines**:
+- **指导原则**：
 {formatted_guidelines}
 
 """
 
         formatted_shot += f"""
-- **Expected Result**:
+- **期望结果**：
 ```json
 {json.dumps(shot.expected_result.model_dump(mode="json", exclude_unset=True), indent=2)}
 ```
@@ -228,7 +228,7 @@ class GenericPreviouslyAppliedActionableCustomerDependentGuidelineMatchingBatch(
         }
 
         guidelines_text = "\n".join(
-            f"{i}) Condition: {guideline_representations[g.id].condition}. Action: {guideline_representations[g.id].action}"
+            f"{i}) 条件：{guideline_representations[g.id].condition}。动作：{guideline_representations[g.id].action}"
             for i, g in self._guidelines.items()
         )
 
@@ -237,42 +237,37 @@ class GenericPreviouslyAppliedActionableCustomerDependentGuidelineMatchingBatch(
         builder.add_section(
             name="guideline-previously-applied-general-instructions",
             template="""
-GENERAL INSTRUCTIONS
+总体说明
 -----------------
-In our system, the behavior of a conversational AI agent is guided by "guidelines". The agent makes use of these guidelines whenever it interacts with a user (also referred to as the customer).
-Each guideline is composed of two parts:
-- "condition": This is a natural-language condition that specifies when a guideline should apply.
-          We look at each conversation at any particular state, and we test against this
-          condition to understand if we should have this guideline participate in generating
-          the next reply to the user.
-- "action": This is a natural-language instruction that should be followed by the agent
-          whenever the "condition" part of the guideline applies to the conversation in its particular state.
-          Any instruction described here applies only to the agent, and not to the user.
+本系统中，对话 AI 客服的行为由「指导原则」指导。客服在与用户（也称客户）交互时会使用这些指导原则。
+每条指导原则由两部分组成：
+-「条件」：用自然语言描述指导原则何时适用。我们根据对话任一状态检查该条件，以判断该指导原则是否应参与生成对用户的下一条回复。
+-「动作」：当指导原则的「条件」在对话特定状态下成立时，客服应遵循的自然语言指令。此处描述仅针对客服，不针对用户。
 
-While an action can only instruct the agent to do something, some guidelines may require something from the customer in order to be completed. These are referred to as "customer dependent" guidelines.
-For example, the action "get the customer's ID number" requires the agent to ask the customer what's their account number, but the guideline is not fully completed until the user provides it.
+动作只能指示客服执行某事，但某些指导原则可能需要客户提供信息才能完成。这些称为「依赖客户」指导原则。
+例如，动作「获取客户 ID 号」要求客服询问客户的账号，但只有用户提供后该指导原则才算完全完成。
 
-Task Description
+任务说明
 ----------------
 
-Your task is to evaluate whether a set of "customer dependent" guidelines should be applied to the current state of a conversation between an AI agent and a user.
+你的任务是评估一组「依赖客户」指导原则是否应适用于 AI 客服与用户之间对话的当前状态。
 
-You will be given guidelines where the agent has already performed their part of the action at least once during the interaction. Now you need to determine if each guideline should be reapplied based on the conversation's current state.
+你将获得客服已在交互中至少执行过一次其部分动作的指导原则。现在需要根据对话当前状态判断每条指导原则是否应重新适用。
 
-A guideline should be applied if either of the following conditions is true:
+若满足以下任一条件，则应适用该指导原则：
 
-   1. Incomplete Action: The original condition still holds, the reason that triggered the agent's initial action remains relevant, AND the customer has not yet fulfilled their part of the action. Example: The agent asked for the user's ID, but the user hasn't responded yet, and the conversation is still about accessing their account.
-   2. New Context for Same Condition: The condition arises again in a new context, requiring the action to be repeated by both agent and customer. Example: The user switches to asking about a second account, so the agent needs to ask for another ID.
+   1. 动作未完成：原条件仍成立，触发客服初始动作的原因仍然相关，且客户尚未履行其部分动作。例如：客服已询问用户 ID，但用户尚未回复，且对话仍在讨论访问其账户。
+   2. 相同条件的新上下文：条件在新上下文中再次出现，需客服和客户均重复该动作。例如：用户转而询问第二个账户，因此客服需再次询问 ID。
 
-Key Evaluation Rules:
+关键评估规则：
 
-- Avoid Repeating Static Information Requests: Do not reapply guidelines that request static information (ID, name, date of birth) unless there's a genuinely new context. However, if an action combines static and dynamic components (e.g., "ask for name and preferred appointment time"), reapply the guideline when the dynamic component becomes relevant again.
+- 避免重复静态信息请求：除非确有新上下文，否则不要重新适用请求静态信息（ID、姓名、出生日期）的指导原则。但若动作同时包含静态和动态部分（如「询问姓名和偏好预约时间」），则当动态部分再次相关时应重新适用。
 
-- Focus on Most Recent Context: Base your evaluation primarily on the last user message. A guideline should only be reapplied if its condition is clearly met in that latest message, not based on earlier parts of the conversation.
+- 关注最近上下文：主要依据最后一条用户消息评估。仅当该最新消息中条件明确满足时才重新适用，而非基于对话更早部分。
 
-- Handle Context Shifts: If a user briefly mentions something that would trigger a guideline but then shifts topics within the same message, do NOT consider the condition active.
+- 处理上下文转换：若用户简要提及会触发指导原则的内容但随即在同一消息内换题，则不要认为条件成立。
 
-- Track Resolution Status: If the most recent instance of a condition has been addressed and resolved, there's no need to reapply the guideline. However, if the user is still engaging with an unresolved issue or a new instance arises, reapplication may be appropriate.
+- 跟踪解决状态：若条件最近一次实例已得到处理并解决，则无需重新适用。但若用户仍在处理未解决问题或出现新实例，则可能适合重新适用。
 
 
 """,
@@ -281,7 +276,7 @@ Key Evaluation Rules:
         builder.add_section(
             name="guideline-matcher-examples-of-previously-applied-evaluations",
             template="""
-Examples of Guideline Match Evaluations:
+指导原则匹配评估示例：
 -------------------
 {formatted_shots}
 """,
@@ -300,7 +295,7 @@ Examples of Guideline Match Evaluations:
         builder.add_section(
             name=BuiltInSection.GUIDELINES,
             template="""
-- Conditions List: ###
+- 指导原则列表：###
 {guidelines_text}
 ###
 """,
@@ -317,11 +312,11 @@ Examples of Guideline Match Evaluations:
         builder.add_section(
             name="guideline-previously-applied-output-format",
             template="""
-IMPORTANT: Please note there are exactly {guidelines_len} guidelines in the list for you to check.
+重要：列表中恰好有 {guidelines_len} 条指导原则需要你检查。
 
-OUTPUT FORMAT
+输出格式
 -----------------
-- Specify the applicability of each guideline by filling in the details in the following list as instructed:
+- 按说明填写下列列表中每条指导原则的适用性：
 ```json
 {result_structure_text}
 ```
@@ -345,12 +340,12 @@ OUTPUT FORMAT
                 "guideline_id": i,
                 "condition": guideline_representations[g.id].condition,
                 "action": guideline_representations[g.id].action,
-                "condition_still_met": "<BOOL, whether the condition that raised the guideline still relevant in the most recent interaction and subject hasn't changed>",
-                "customer_should_reply": "<BOOL, include only if condition_still_met=True. whether the customer needs to apply their side of the action>",
-                "condition_met_again": "<BOOL, include only if customer_should_reply=False whether the condition is met again in the recent interaction for a new reason and action should be taken again>",
-                "action_should_reapply": "<BOOL,  include only if condition_met_again=True. whether the action is not static and should be taken again>",
-                "action_wasnt_taken": "<BOOL, include only if action_should_reapply=True, whether the new action wasn't taken yet by the agent or the customer>",
-                "tldr": "<str, Explanation for why the guideline should apply in the most recent context>",
+                "condition_still_met": "<BOOL，引发该指导原则的条件在最近交互中是否仍相关且主题未变>",
+                "customer_should_reply": "<BOOL，仅当 condition_still_met=True 时包含。客户是否需要履行其部分动作>",
+                "condition_met_again": "<BOOL，仅当 customer_should_reply=False 时包含。条件是否因新原因在最近交互中再次满足且动作应再次执行>",
+                "action_should_reapply": "<BOOL，仅当 condition_met_again=True 时包含。动作是否非静态且应再次执行>",
+                "action_wasnt_taken": "<BOOL，仅当 action_should_reapply=True 时包含。新动作是否尚未由客服或客户执行>",
+                "tldr": "<str，说明为何该指导原则应在最近上下文中适用>",
                 "should_apply": "<BOOL>",
             }
             for i, g in self._guidelines.items()

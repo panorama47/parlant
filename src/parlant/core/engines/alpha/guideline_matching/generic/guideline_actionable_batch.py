@@ -158,7 +158,7 @@ class GenericActionableGuidelineMatchingBatch(GuidelineMatchingBatch):
         self, shots: Sequence[GenericActionableGuidelineGuidelineMatchingShot]
     ) -> str:
         return "\n".join(
-            f"Example #{i}: ###\n{self._format_shot(shot)}" for i, shot in enumerate(shots, start=1)
+            f"示例 #{i}：###\n{self._format_shot(shot)}" for i, shot in enumerate(shots, start=1)
         )
 
     def _format_shot(self, shot: GenericActionableGuidelineGuidelineMatchingShot) -> str:
@@ -181,23 +181,23 @@ class GenericActionableGuidelineMatchingBatch(GuidelineMatchingBatch):
         formatted_shot = ""
         if shot.interaction_events:
             formatted_shot += f"""
-- **Interaction Events**:
+- **交互事件**：
 {json.dumps([adapt_event(e) for e in shot.interaction_events], indent=2)}
 
 """
         if shot.guidelines:
             formatted_guidelines = "\n".join(
-                f"{i}) Condition {g.condition}. Action: {g.action}"
+                f"{i}) 条件：{g.condition}。动作：{g.action}"
                 for i, g in enumerate(shot.guidelines, start=1)
             )
             formatted_shot += f"""
-- **Guidelines**:
+- **指导原则**：
 {formatted_guidelines}
 
 """
 
         formatted_shot += f"""
-- **Expected Result**:
+- **期望结果**：
 ```json
 {json.dumps(shot.expected_result.model_dump(mode="json", exclude_unset=True), indent=2)}
 ```
@@ -214,7 +214,7 @@ class GenericActionableGuidelineMatchingBatch(GuidelineMatchingBatch):
         }
 
         guidelines_text = "\n".join(
-            f"{i}) Condition: {guideline_representations[g.id].condition}. Action: {guideline_representations[g.id].action}"
+            f"{i}) 条件：{guideline_representations[g.id].condition}。动作：{guideline_representations[g.id].action}"
             for i, g in self._guidelines.items()
         )
 
@@ -223,37 +223,28 @@ class GenericActionableGuidelineMatchingBatch(GuidelineMatchingBatch):
         builder.add_section(
             name="actionable-guideline-general-instructions-task-description",
             template="""
-GENERAL INSTRUCTIONS
+总体说明
 -----------------
-In our system, the behavior of a conversational AI agent is guided by "guidelines". The agent makes use of these guidelines whenever it interacts with a user (also referred to as the customer).
-Each guideline is composed of two parts:
-- "condition": This is a natural-language condition that specifies when a guideline should apply.
-          We examine each conversation in its current state and test this condition
-          to determine whether the guideline should participate in generating
-          the next reply to the user.
-- "action": This is a natural-language instruction that should be followed by the agent
-          whenever the "condition" part of the guideline applies to the conversation in its particular state.
-          Any instruction described here applies only to the agent, and not to the user.
+本系统中，对话 AI 客服的行为由「指导原则」指导。客服在与用户（也称客户）交互时会使用这些指导原则。
+每条指导原则由两部分组成：
+-「条件」：用自然语言描述指导原则何时适用。我们根据对话当前状态检查该条件，以判断该指导原则是否应参与生成对用户的下一条回复。
+-「动作」：当指导原则的「条件」在对话当前状态下成立时，客服应遵循的自然语言指令。此处描述仅针对客服，不针对用户。
 
-
-Task Description
+任务说明
 ----------------
-Your task is to evaluate the relevance and applicability of a set of provided 'when' conditions to the most recent state of an interaction between yourself (an AI agent) and a user.
-You examine the applicability of each guideline under the assumption that the action was not taken yet during the interaction.
+你的任务是评估一组给定的「何时」条件与你（AI 客服）和用户之间交互的最近状态的相关性与适用性。
+你在假设该动作尚未在交互中执行的前提下，检查每条指导原则的适用性。
 
-A guideline should be marked as applicable if it is relevant to the latest part of the conversation and in particular to the most recent customer message. Do not mark a guideline as
-applicable solely based on earlier parts of the conversation if the topic has since shifted, even if the previous topic remains unresolved or its action was never carried out.
+若指导原则与对话最新部分、尤其是最近一条客户消息相关，则标为适用。若话题已转换，不要仅根据对话较早部分将指导原则标为适用，即使之前话题未解决或该动作从未执行。
 
-If the conversation moves from a broader issue to a related sub-issue (a related detail or follow-up within the same overall issue), you should still consider the guideline as applicable
-if it is relevant to the sub-issue, as it is part of the ongoing discussion.
-In contrast, if the conversation has clearly moved on to an entirely new topic, previous guidelines should not be marked as applicable.
-This ensures that applicability is tied to the current context, but still respects the continuity of a discussion when diving deeper into subtopics.
+若对话从较宽泛的问题转向相关子问题（同一整体问题下的相关细节或后续），只要指导原则与该子问题相关，仍应视为适用，因其属于当前讨论的一部分。
+反之，若对话已明显转向全新话题，则之前的指导原则不应标为适用。
+这样既把适用性绑定到当前上下文，又保留在深入子话题时讨论的连续性。
 
-When evaluating whether the conversation has shifted to a related sub-issue versus a completely different topic, consider whether the customer remains interested in resolving their previous inquiry that fulfilled the condition.
-If the customer is still pursuing that original inquiry, then the current discussion should be considered a sub-issue of it. Do not concern yourself with whether the original issue was resolved - only ask if the current issue at hand is a sub-issue of the condition.
+在判断对话是转向相关子问题还是完全不同的话题时，考虑客户是否仍有意解决此前满足该条件的询问。
+若客户仍在追求该原始询问，则当前讨论应视为其子问题。不必关心原问题是否已解决，只需判断当前问题是否为该条件的子问题。
 
-
-The exact format of your response will be provided later in this prompt.
+回复的确切格式将在本提示后文给出。
 
 """,
             props={},
@@ -261,7 +252,7 @@ The exact format of your response will be provided later in this prompt.
         builder.add_section(
             name="actionable-guideline-matcher-examples-of-evaluations",
             template="""
-Examples of Guideline Match Evaluations:
+指导原则匹配评估示例：
 -------------------
 {formatted_shots}
 """,
@@ -280,7 +271,7 @@ Examples of Guideline Match Evaluations:
         builder.add_section(
             name=BuiltInSection.GUIDELINES,
             template="""
-- Guidelines List: ###
+- 指导原则列表：###
 {guidelines_text}
 ###
 """,
@@ -291,11 +282,11 @@ Examples of Guideline Match Evaluations:
         builder.add_section(
             name="actionable-guideline-output-format",
             template="""
-IMPORTANT: Please note there are exactly {guidelines_len} guidelines in the list for you to check.
+重要：列表中恰好有 {guidelines_len} 条指导原则需要你检查。
 
-OUTPUT FORMAT
+输出格式
 -----------------
-- Specify the applicability of each guideline by filling in the details in the following list as instructed:
+- 按说明填写下列列表中每条指导原则的适用性：
 ```json
 {result_structure_text}
 ```
@@ -318,7 +309,7 @@ OUTPUT FORMAT
             {
                 "guideline_id": i,
                 "condition": guideline_representations[g.id].condition,
-                "rationale": "<Explanation for why the condition is or isn't met when focusing on the most recent interaction>",
+                "rationale": "<说明在关注最近交互时该条件为何满足或不满足>",
                 "applies": "<BOOL>",
             }
             for i, g in self._guidelines.items()

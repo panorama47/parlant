@@ -378,52 +378,52 @@ This journey is not currently active. We may need to:
         builder.add_section(
             name="journey-backtrack-check-general-instructions",
             template="""
-GENERAL INSTRUCTIONS
+总体说明
 -------------------
-In our system, the behavior of a conversational AI agent is structured around predefined "journeys" - structured workflows that guide customer interactions toward specific outcomes.
+本系统中，对话 AI 客服的行为围绕预定义的「旅程」组织——即引导客户交互达成特定结果的结构化流程。
 
-## Journey Structure
-Each journey consists of:
-- **Steps**: Individual actions that the agent must execute (e.g., ask a question, provide information, perform a task)
-- **Transitions**: Rules that determine which step comes next based on customer responses or completion status
+## 旅程结构
+每个旅程包含：
+- **步骤**：客服必须执行的单个动作（如提问、提供信息、执行任务）
+- **转换**：根据客户回复或完成状态决定下一步的规则
     """,
             props={"agent_name": self._context.agent.name},
         )
         builder.add_section(
             name="journey-backtrack-check-task-description",
             template="""
-TASK DESCRIPTION
+任务说明
 -------------------
-Analyze the current conversation state and determine if need to backtrack to a journey step that was already executed.
+分析当前对话状态，判断是否需要回退到已执行过的旅程步骤。
 
-Backtracking scenarios:
-    - The customer has changed a previous decision, which requires returning to an earlier step. This means retaking a step that was already visited and modifying the actions taken there.
-    - The customer wants to perform the same journey process again but for a different purpose. In this case, backtrack to the beginning and re-perform the journey.
-    - The customer wants to resume to the journey process that was stopped midway. In this case, continue the journey from the last executed step.
+回退场景：
+    - 客户改变了先前决定，需回到更早的步骤。即重新执行已访问过的步骤并修改当时执行的动作。
+    - 客户希望再次执行同一旅程流程但目的不同。此情况下，回退到起点并重新执行旅程。
+    - 客户希望恢复中途停止的旅程流程。此情况下，从上一步开始继续旅程。
 
-- If returning to a previous step (or restarting the journey from the beginning) is needed, set `requires_backtracking` to `true`.
-    - Only steps marked with PREVIOUSLY EXECUTED flags are eligible for backtracking
-- If backtracking is needed, specify the reason:
-        Set 'backtrack_to_same_journey_process' to 'true' if need to revisit the journey for the same reason - changing previous decisions or resuming the journey after exiting it, for the same purpose as before.
-        Set 'backtrack_to_same_journey_process' to 'false' if the journey is being revisited for a new purpose.
+- 若需要回到之前的步骤（或从起点重启旅程），将 `requires_backtracking` 设为 `true`。
+    - 仅带有「已执行过」标志的步骤可被回退
+- 若需要回退，说明原因：
+        若因同一原因重新进入旅程（如改变先前决定或退出后恢复旅程，目的与之前相同），将 'backtrack_to_same_journey_process' 设为 'true'。
+        若因新目的重新进入旅程，将 'backtrack_to_same_journey_process' 设为 'false'。
 
-Example: If the journey represents a process for purchasing an item and the customer wants to change the quantity they previously requested, this is the same journey execution and the same purpose.
-If, however, the customer wants to purchase a different item, the journey should restart from the beginning, which is considered a new purpose.
+示例：若旅程表示购买商品的流程，客户想修改之前请求的数量，则属于同一旅程执行和同一目的。
+若客户想购买不同商品，旅程应从起点重启，视为新目的。
 
-Exit the journey:
-If the journey needs to be exited because it was completed or the customer requests to leave the process, then backtracking is not required ('requires_backtracking' = False).
-Exiting a journey does not involve backtracking to the beginning.
+退出旅程：
+若旅程因已完成或客户要求离开而需退出，则不需要回退（'requires_backtracking' = False）。
+退出旅程不涉及回退到起点。
 """,
         )
         builder.add_section(
             name="journey-backtrack-check-examples",
             template="""
-Examples of Journey Step Selections:
+旅程步骤选择示例：
 -------------------
 {formatted_shots}
 
 ###
-Example section is over. The following is the real data you need to use for your decision.
+示例部分结束。以下为你需要据此做出判断的真实数据。
 """,
             props={
                 "formatted_shots": self._format_shots(shots),
@@ -460,17 +460,17 @@ Example section is over. The following is the real data you need to use for your
 
     def _get_output_format_section(self) -> str:
         return """
-IMPORTANT: Please provide your answer in the following JSON format.
+重要：请按以下 JSON 格式作答。
 
-OUTPUT FORMAT
+输出格式
 -----------------
-- Fill in the following fields as instructed. Each field is required unless otherwise specified.
+- 按说明填写下列字段。除非另有说明，否则均为必填。
 
 ```json
 {
-    "rationale": "<str, explanation for whether need to perform backtrack and why>",
-    "requires_backtracking": <bool, does the agent need to backtrack to a previous step?>,
-    "backtrack_to_same_journey_process": "<bool, include only if requires_backtracking is true, whether need to return to the same journey process>",
+    "rationale": "<str，说明是否需要回退及原因>",
+    "requires_backtracking": <bool，客服是否需要回退到之前的步骤？>,
+    "backtrack_to_same_journey_process": "<bool，仅当 requires_backtracking 为 true 时包含。是否需要回到同一旅程流程>",
 }
 ```
 """
@@ -480,7 +480,7 @@ OUTPUT FORMAT
 
     def _format_shots(self, shots: Sequence[JourneyBacktrackCheckShot]) -> str:
         return "\n".join(
-            f"Example #{i}: {shot.journey_title}\n{self._format_shot(shot)}"
+            f"示例 #{i}：{shot.journey_title}\n{self._format_shot(shot)}"
             for i, shot in enumerate(shots, start=1)
         )
 
